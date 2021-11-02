@@ -3,6 +3,8 @@ This python script calls the Home Assistant API for a weather entity and shows t
 
 Please note that I have next to zero experience in programming! I don't expect that this is a stable setup in your environment!
 
+![Example](/inky-impression-weather.png)
+
 # Requirements
 1. [Inky Impression e-paper display](https://shop.pimoroni.com/products/inky-impression) 
 2. Raspberry Pi (e.g. Zero)
