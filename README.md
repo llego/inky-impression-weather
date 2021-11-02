@@ -18,8 +18,11 @@ Please note that I have next to zero experience in programming! I don't expect t
 1. Install Raspberry Pi OS Lite
 2. Connect Raspberry Pi to Inky Impression
 3. [Set up Inky python libraries](http://docs.pimoroni.com/inkyphat/)
-4. Make sure that you have a suitable weather entity in Home Assistant.
-5. Configure a Long-Lived Access Token in Home Assistant
+
+`curl https://get.pimoroni.com/inky | bash`
+
+4. Make sure that you have a suitable weather entity in Home Assistant, for example the [smartweather custom component](https://github.com/briis/smartweather). I have not tested the regular weather entity that is pre-configured in Home Assistant.
+5. Set up a Long-Lived Access Token in Home Assistant
 6. Modify the Long-Lived Access Token and IP address in `update-weather.py`
 7. Update crontab to run the python script regularly; every 15 mins, for example
 
