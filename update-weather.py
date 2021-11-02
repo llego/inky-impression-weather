@@ -4,6 +4,7 @@ import os
 from font_fredoka_one import FredokaOne
 import json
 from requests import get
+from datetime import datetime
 
 path = os.path.dirname(os.path.realpath(__file__))
 
@@ -30,6 +31,9 @@ wind_speed = json_obj["attributes"]["wind_speed"]
 tomorrow_cond = json_obj["attributes"]["forecast"][1]["condition"]
 tomorrow_temp = json_obj["attributes"]["forecast"][1]["temperature"]
 tomorrow_low = json_obj["attributes"]["forecast"][1]["templow"]
+
+now = "Updated: " + datetime.now().strftime("%Y-%m-%d %H:%M")
+print("date and time =", now)	
 
 #print(json_obj["attributes"]["forecast"])
 
@@ -95,21 +99,25 @@ inky_display.show()
 ### Fonts
 font_big = ImageFont.truetype(FredokaOne, 100)
 font_small = ImageFont.truetype(FredokaOne, 50)
+font_mini = ImageFont.truetype(FredokaOne, 20)
 
 
 
 
 ### Write general weather and icon to display
+w_timestamp, h_timestamp = font_mini.getsize(now)
 w_general, h_general = font_small.getsize(today_cond)
 w_icon, h_icon = icon.size
 
+x_timestamp = int(inky_display.WIDTH - w_timestamp)
 x_icon = int(inky_display.WIDTH / 2 - (w_general+w_icon) / 2)
 y_icon = 10
 x_general = int(x_icon + w_icon + 1)
 y_general = int(h_icon / 2 - h_general / 2)
 
 img.paste(icon, (x_icon, y_icon))
-draw.text((x_general, y_general), today_cond, inky_display.ORANGE, font_small)
+draw.text((x_general, y_general), today_cond, inky_display.YELLOW, font_small)
+draw.text((x_timestamp, 1), now, inky_display.WHITE, font_mini)
 
 ### Write temp and humidity to display
 w_today, h_today = font_big.getsize(today)
@@ -125,7 +133,7 @@ x_tomorrow = int((inky_display.WIDTH / 2) - (w_tomorrow / 2))
 y_tomorrow = int((inky_display.HEIGHT) - h_tomorrow - 10)
 
 draw.text((x_tomorrow_label, y_tomorrow - 60), "Tomorrow:", inky_display.GREEN, font_small)
-draw.text((x_tomorrow, y_tomorrow), tomorrow, inky_display.RED, font_small)
+draw.text((x_tomorrow, y_tomorrow), tomorrow, inky_display.GREEN, font_small)
 
 inky_display.set_image(img)
 inky_display.show()

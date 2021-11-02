@@ -1,1 +1,0 @@
-:1,$s /y="0px"/y="0px" width="180px" height="180px"/g:wq
