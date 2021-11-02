@@ -12,9 +12,9 @@ inky_display = auto()
 inky_display.set_border(inky_display.BLACK)
 
 ### API call to Home Assistant
-url = "http://192.168.1.115:8123/api/states/weather.smartweather_loosarintie_3_daily"
+url = "http://[HOME ASSISTANT IP]:8123/api/states/weather.[YOURWEATHERENTITYNAME]"
 headers = {
-    "Authorization": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJiNjc5OWFkZTIwYWY0ZjYyOThmNjlhNjNiYTA2NjQ1ZSIsImlhdCI6MTYzNTMxMTAxOSwiZXhwIjoxOTUwNjcxMDE5fQ._OhQEGp-_glKqV48yK6qcMG1zar-XAdDb63phxVmGos",
+    "Authorization": "Bearer [LONG ACCESS TOKEN]",
     "content-type": "application/json",
 }
 response = get(url, headers=headers)
