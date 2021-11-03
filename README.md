@@ -1,11 +1,11 @@
 # Description
-This python script calls the Home Assistant API, pulls information from a weather entity, and shows the current weather and forecast on an Inky Impression e-paper display. I'm using a Raspberry Pi Zero but the Inky Impression is compatible with all the other regular Raspberry Pi's aswell.
+This python script calls the Home Assistant API, pulls information from a weather entity, and shows the current weather and forecast on an Inky Impression e-paper display. I'm using a Raspberry Pi Zero but the Inky Impression is compatible with all the other regular Raspberry Pi's as well.
 
-The weather entity that I'm using is a [custom component](https://github.com/briis/smartweather) that pulls data from a [Weatherflow Tempest Weather Station](https://weatherflow.com/tempest-weather-system/) installed on my friend's backyard. Your weather entity has possibly different values/categories than the weather entity that I'm using.
+The weather entity that I'm using is a [custom component](https://github.com/briis/smartweather) that pulls data from a [Weatherflow Tempest Weather Station](https://weatherflow.com/tempest-weather-system/) installed on my friend's backyard. Your weather entity has possibly different keys and values than the weather entity that I'm using.
 
-Please note that The Inky Impression display is really slow to update, around a minute or so. Furthermore, the Python libraries and documentation are mostly made for other Inky devices, making it really tricky to learn the various tricks and tweaks specific to the Inky Impression. Working with the Inky Impression can get quite tedious!
+Please note that the Inky Impression display is really slow to update, around a minute or so. Furthermore, the Python libraries and documentation are mostly made for other Inky devices, making it really tricky to learn the various tricks and tweaks specific to the Inky Impression. Working with the Inky Impression can get quite tedious!
 
-Please note that I have next to zero experience in programming! I don't expect that this is a stable setup in your environment!
+Please note that I have next to zero experience in programming! I don't expect this to be a stable setup in your environment!
 
 ![Example](/inky-impression-weather.png)
 
