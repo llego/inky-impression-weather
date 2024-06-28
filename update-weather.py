@@ -14,8 +14,11 @@ inky_display.set_border(inky_display.BLACK)
 
 url = parameters.url
 url_ilmatieteenlaitos = parameters.url_ilmatieteenlaitos
+url_openweathermap = parameters.url_openweathermap
 url_indoor_temp = parameters.url_indoor_temp
+url_indoor_temp_sovrummet = parameters.url_indoor_temp_sovrummet
 url_indoor_humidity = parameters.url_indoor_humidity
+url_indoor_humidity_sovrummet = parameters.url_indoor_humidity_sovrummet
 headers = parameters.headers
 
 # API call to home assistant
@@ -28,14 +31,14 @@ json_obj = json.loads(response.text)
 #print(json.dumps(json_obj, indent=4))
 
 if json_obj["state"] == "unavailable":
-	print("Smartweather is unavailable. Trying Ilmatieteenlaitos")
+	print("Smartweather is unavailable. Trying openweathermap")
 	try:
-		response = get(url_ilmatieteenlaitos, headers=headers)
+		#response = get(url_ilmatieteenlaitos, headers=headers)
+		response = get(url_openweathermap, headers=headers)
 	except exceptions.RequestException as e:
 		raise SystemExit(e)
 	json_obj = json.loads(response.text)
 	#print(json.dumps(json_obj, indent=4))
-
 
 
 ### Variables for current weather
@@ -43,7 +46,7 @@ datasource = json_obj["attributes"]["friendly_name"]
 today_cond = json_obj["state"]
 temperature = json_obj["attributes"]["temperature"]
 humidity = json_obj["attributes"]["humidity"]
-wind_bearing = json_obj["attributes"]["wind_bearing"]
+#wind_bearing = json_obj["attributes"]["wind_bearing"]
 wind_speed = round(json_obj["attributes"]["forecast"][0]["wind_speed"] / 3.6, 1)
 today_high = json_obj["attributes"]["forecast"][0]["temperature"]
 tomorrow_cond = json_obj["attributes"]["forecast"][1]["condition"]
@@ -100,20 +103,26 @@ else:
 #### Indoor temperature and humidity
 try:
     response_indoor_temp = get(url_indoor_temp, headers=headers)
-except exceptions.RequestException as e:
-    raise SystemExit(e)
-    
-json_obj_indoor_temp = json.loads(response_indoor_temp.text)
-temp_indoor = round(float(json_obj_indoor_temp["state"]))
-
-try:
     response_indoor_humidity = get(url_indoor_humidity, headers=headers)
 except exceptions.RequestException as e:
     raise SystemExit(e)
 
-json_obj_indoor_humidity = json.loads(response_indoor_humidity.text)
-humidity_indoor = round(float(json_obj_indoor_humidity["state"]))
-
+try:
+    json_obj_indoor_temp = json.loads(response_indoor_temp.text)
+    temp_indoor = round(float(json_obj_indoor_temp["state"]))
+    json_obj_indoor_humidity = json.loads(response_indoor_humidity.text)
+    humidity_indoor = round(float(json_obj_indoor_humidity["state"]))
+except:
+    response_indoor_temp = get(url_indoor_temp_sovrummet, headers=headers)
+    response_indoor_humidity = get(url_indoor_humidity_sovrummet, headers=headers)
+    json_obj_indoor_temp = json.loads(response_indoor_temp.text)
+    try:
+        temp_indoor = round(float(json_obj_indoor_temp["state"]))
+        json_obj_indoor_humidity = json.loads(response_indoor_humidity.text)
+        humidity_indoor = round(float(json_obj_indoor_humidity["state"]))
+    except:
+        temp_indoor = None
+        humidity_indoor = None
 
 
 today = temp_info + \
