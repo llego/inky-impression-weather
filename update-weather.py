@@ -28,7 +28,7 @@ except exceptions.RequestException as e:
     raise SystemExit(e)
 
 json_obj = json.loads(response.text)
-#print(json.dumps(json_obj, indent=4))
+print(json.dumps(json_obj, indent=4))
 
 if json_obj["state"] == "unavailable":
 	print("Smartweather is unavailable. Trying openweathermap")
@@ -47,7 +47,8 @@ today_cond = json_obj["state"]
 temperature = json_obj["attributes"]["temperature"]
 humidity = json_obj["attributes"]["humidity"]
 #wind_bearing = json_obj["attributes"]["wind_bearing"]
-wind_speed = round(json_obj["attributes"]["forecast"][0]["wind_speed"] / 3.6, 1)
+#wind_speed = round(json_obj["attributes"]["forecast"][0]["wind_speed"] / 3.6, 1)
+wind_speed = round(json_obj["attributes"]["forecast"][0]["wind_speed"], 1)
 today_high = json_obj["attributes"]["forecast"][0]["temperature"]
 tomorrow_cond = json_obj["attributes"]["forecast"][1]["condition"]
 tomorrow_temp = json_obj["attributes"]["forecast"][1]["temperature"]
