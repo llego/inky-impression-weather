@@ -12,33 +12,35 @@ path = os.path.dirname(os.path.realpath(__file__))
 inky_display = auto()
 inky_display.set_border(inky_display.BLACK)
 
-url = parameters.url
-url_ilmatieteenlaitos = parameters.url_ilmatieteenlaitos
-url_openweathermap = parameters.url_openweathermap
+url_fmi = parameters.url_fmi
+url_fmi_forecast = parameters.url_fmi_forecast
+
 url_indoor_temp = parameters.url_indoor_temp
 url_indoor_temp_sovrummet = parameters.url_indoor_temp_sovrummet
 url_indoor_humidity = parameters.url_indoor_humidity
 url_indoor_humidity_sovrummet = parameters.url_indoor_humidity_sovrummet
+
 headers = parameters.headers
 
 # API call to home assistant
 try:
-    response = get(url, headers=headers)
+    response = get(url_fmi, headers=headers)
 except exceptions.RequestException as e:
     raise SystemExit(e)
 
 json_obj = json.loads(response.text)
+print("\nCurrent weather:\n")
 print(json.dumps(json_obj, indent=4))
 
-if json_obj["state"] == "unavailable":
-	print("Smartweather is unavailable. Trying openweathermap")
-	try:
-		#response = get(url_ilmatieteenlaitos, headers=headers)
-		response = get(url_openweathermap, headers=headers)
-	except exceptions.RequestException as e:
-		raise SystemExit(e)
-	json_obj = json.loads(response.text)
-	#print(json.dumps(json_obj, indent=4))
+# API call to home assistant
+try:
+    response = get(url_fmi_forecast, headers=headers)
+except exceptions.RequestException as e:
+    raise SystemExit(e)
+
+json_obj_forecast = json.loads(response.text)
+print("\nForecast:\n")
+print(json.dumps(json_obj_forecast, indent=4))
 
 
 ### Variables for current weather
@@ -46,57 +48,31 @@ datasource = json_obj["attributes"]["friendly_name"]
 today_cond = json_obj["state"]
 temperature = json_obj["attributes"]["temperature"]
 humidity = json_obj["attributes"]["humidity"]
-#wind_bearing = json_obj["attributes"]["wind_bearing"]
-#wind_speed = round(json_obj["attributes"]["forecast"][0]["wind_speed"] / 3.6, 1)
-wind_speed = round(json_obj["attributes"]["forecast"][0]["wind_speed"], 1)
-today_high = json_obj["attributes"]["forecast"][0]["temperature"]
-tomorrow_cond = json_obj["attributes"]["forecast"][1]["condition"]
-tomorrow_temp = json_obj["attributes"]["forecast"][1]["temperature"]
-tomorrow_wind_speed = round(json_obj["attributes"]["forecast"][1]["wind_speed"] / 3.6, 1)
+wind_bearing = json_obj["attributes"]["wind_bearing"]
+wind_speed = round(json_obj["attributes"]["wind_speed"] / 3.6, 1)
 
 
-try:    
-	precipitation_probability = json_obj["attributes"]["forecast"][0]["precipitation_probability"]
-except KeyError:
-	precipitation_probability = None
+### Variables for weather forecast
+tomorrow_cond = json_obj_forecast["attributes"]["forecast"][1]["condition"]
+tomorrow_temp = json_obj_forecast["attributes"]["forecast"][1]["temperature"]
+tomorrow_wind_speed = json_obj_forecast["attributes"]["forecast"][1]["wind_speed"]
 
-try:    
-	tomorrow_precipitation_probability = json_obj["attributes"]["forecast"][1]["precipitation_probability"]
-except KeyError:
-	tomorrow_precipitation_probability = None
-	
+precipitation_mm = json_obj_forecast["attributes"]["forecast"][0]["precipitation"]
+precipitation_mm_tomorrow = json_obj_forecast["attributes"]["forecast"][1]["precipitation"]
 
-try:
-    today_low = json_obj["attributes"]["forecast"][0]["templow"]
-except KeyError:
-    today_low = None
+#precipitation_probability = json_obj["attributes"]["forecast"][0]["precipitation_probability"]
+#tomorrow_precipitation_probability = json_obj["attributes"]["forecast"][1]["precipitation_probability"]
 
-try: 
-    tomorrow_low = json_obj["attributes"]["forecast"][1]["templow"]
-except KeyError:
-    tomorrow_low = None
-
-
+#today_low = json_obj["attributes"]["forecast"][0]["templow"]
+#tomorrow_low = json_obj["attributes"]["forecast"][1]["templow"]
 
 
 #### Construct report text
+temp_info = "Ute " + u"{}°C".format(temperature)
+temp_info_tomorrow = "Ute " + u"{}°C".format(tomorrow_temp)
 
-if today_low == None:
-	temp_info = "Ute " + u"{}°C".format(temperature)
-	temp_info_tomorrow = u"{}".format(tomorrow_temp)
-else:
-	temp_info = "Ute " + u"{}°C".format(temperature) + " (" + u"{}".format(today_low) + "..." + u"{}°C".format(today_high) + ")"
-	temp_info_tomorrow = u"{}".format(tomorrow_low) + "..." + u"{}°C".format(tomorrow_temp)
-	
-
-if precipitation_probability == None:
-	precipitation_mm = json_obj["attributes"]["forecast"][0]["precipitation"]
-	precipitation_mm_tomorrow = json_obj["attributes"]["forecast"][1]["precipitation"]
-	rain_info = "\nNederbörd: " + u"{} mm".format(precipitation_mm)
-	rain_info_tomorrow = "\nNederbörd: " + u"{} mm".format(precipitation_mm_tomorrow)
-else:
-	rain_info = "\nP(regn): " + u"{} %".format(precipitation_probability)
-	rain_info_tomorrow = "\nP(regn): " + u"{} %".format(precipitation_probability)
+rain_info = "\nNederbörd: " + u"{} mm".format(precipitation_mm)
+rain_info_tomorrow = "\nNederbörd: " + u"{} mm".format(precipitation_mm_tomorrow)
 
 
 
