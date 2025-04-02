@@ -53,23 +53,28 @@ wind_speed = round(json_obj["attributes"]["wind_speed"] / 3.6, 1)
 
 
 ### Variables for weather forecast
-tomorrow_cond = json_obj_forecast["attributes"]["forecast"][1]["condition"]
-tomorrow_temp = json_obj_forecast["attributes"]["forecast"][1]["temperature"]
-tomorrow_wind_speed = json_obj_forecast["attributes"]["forecast"][1]["wind_speed"]
-
+today_templow = json_obj_forecast["attributes"]["forecast"][0]["templow"]
+today_temphigh = json_obj_forecast["attributes"]["forecast"][0]["temperature"]
 precipitation_mm = json_obj_forecast["attributes"]["forecast"][0]["precipitation"]
+
+tomorrow_cond = json_obj_forecast["attributes"]["forecast"][1]["condition"]
+
+tomorrow_templow = json_obj_forecast["attributes"]["forecast"][1]["templow"]
+tomorrow_temphigh = json_obj_forecast["attributes"]["forecast"][1]["temperature"]
+
+tomorrow_wind_speed = json_obj_forecast["attributes"]["forecast"][1]["wind_speed"]
 precipitation_mm_tomorrow = json_obj_forecast["attributes"]["forecast"][1]["precipitation"]
+
 
 #precipitation_probability = json_obj["attributes"]["forecast"][0]["precipitation_probability"]
 #tomorrow_precipitation_probability = json_obj["attributes"]["forecast"][1]["precipitation_probability"]
 
-#today_low = json_obj["attributes"]["forecast"][0]["templow"]
-#tomorrow_low = json_obj["attributes"]["forecast"][1]["templow"]
 
 
 #### Construct report text
-temp_info = "Ute " + u"{}°C".format(temperature)
-temp_info_tomorrow = "Ute " + u"{}°C".format(tomorrow_temp)
+temp_info = "Ute " + u"{}°C".format(temperature) + " (" + str(today_templow) + "..." + u"{}°C".format(today_temphigh) + ")"
+temp_info_tomorrow = "Ute " + str(tomorrow_templow) + "..." + u"{}°C".format(tomorrow_temphigh)
+#temp_info_tomorrow = "Ute " + u"{}°C".format(tomorrow_temp)
 
 rain_info = "\nNederbörd: " + u"{} mm".format(precipitation_mm)
 rain_info_tomorrow = "\nNederbörd: " + u"{} mm".format(precipitation_mm_tomorrow)
