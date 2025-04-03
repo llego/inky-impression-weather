@@ -65,6 +65,7 @@ tomorrow_temphigh = json_obj_forecast["attributes"]["forecast"][1]["temperature"
 tomorrow_wind_speed = json_obj_forecast["attributes"]["forecast"][1]["wind_speed"]
 precipitation_mm_tomorrow = json_obj_forecast["attributes"]["forecast"][1]["precipitation"]
 
+tomorrow_humidity = json_obj_forecast["attributes"]["forecast"][1]["humidity"]
 
 #precipitation_probability = json_obj["attributes"]["forecast"][0]["precipitation_probability"]
 #tomorrow_precipitation_probability = json_obj["attributes"]["forecast"][1]["precipitation_probability"]
@@ -72,17 +73,21 @@ precipitation_mm_tomorrow = json_obj_forecast["attributes"]["forecast"][1]["prec
 
 
 #### Construct report text
-temp_info = "Ute " + u"{}°C".format(temperature) + " (" + str(today_templow) + "..." + u"{}°C".format(today_temphigh) + ")"
-temp_info_tomorrow = "Ute " + str(tomorrow_templow) + "..." + u"{}°C".format(tomorrow_temphigh)
-#temp_info_tomorrow = "Ute " + u"{}°C".format(tomorrow_temp)
+temp_info = "Temp: " + u"{}°C".format(temperature) + " (" + str(today_templow) + "..." + u"{}°C".format(today_temphigh) + ")"
+temp_info_tomorrow = "Temp: " + str(tomorrow_templow) + "..." + u"{}°C".format(tomorrow_temphigh)
 
 rain_info = "\nNederbörd: " + u"{} mm".format(precipitation_mm)
 rain_info_tomorrow = "\nNederbörd: " + u"{} mm".format(precipitation_mm_tomorrow)
 
+fukt_info = "\nFukt: " + u"{}%".format(humidity)
+fukt_info_tomorrow = "\nFukt: " + u"{}%".format(tomorrow_humidity)
 
+wind_info = "\nVind: " + u"{} m/s".format(wind_speed)
+wind_info_tomorrow = "\nVind: " + u"{} m/s".format(tomorrow_wind_speed)
 
 
 #### Indoor temperature and humidity
+# This is ignored at the moment
 try:
     response_indoor_temp = get(url_indoor_temp, headers=headers)
     response_indoor_humidity = get(url_indoor_humidity, headers=headers)
@@ -108,14 +113,14 @@ except:
 
 
 today = temp_info + \
-"\nInne " + u"{}°C".format(temp_indoor) + \
-"\nFukt ute " + u"{}%".format(humidity) + ", inne " + u"{}%".format(humidity_indoor) + \
+fukt_info + \
 rain_info + \
-"\nVind: " + u"{} m/s".format(wind_speed)
+wind_info
 
 tomorrow = temp_info_tomorrow + \
+fukt_info_tomorrow + \
 rain_info_tomorrow + \
-"\nVind: " + u"{} m/s".format(tomorrow_wind_speed)
+wind_info_tomorrow
 
 timestamp = "Uppdaterad " + datetime.now().strftime("%Y-%m-%d %H:%M") + " från " + datasource
 
