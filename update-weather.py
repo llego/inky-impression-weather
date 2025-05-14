@@ -225,8 +225,8 @@ x_today = x_icon + w_icon
 y_today = 20
 
 img.paste(icon_today, (x_icon, y_icon))
-draw.text((x_heading, y_heading), "Idag", inky_display.YELLOW, font_mini)
-draw.text((x_today, y_today), today, inky_display.YELLOW, font_small)
+draw.text((x_heading, y_heading), "Idag", inky_display.WHITE, font_mini)
+draw.text((x_today, y_today), today, inky_display.WHITE, font_small)
 
 
 
@@ -247,8 +247,8 @@ x_tomorrow = x_icon_tomorrow + w_icon_tomorrow
 y_tomorrow = y_icon_tomorrow
 
 img.paste(icon_tomorrow, (x_icon_tomorrow, y_icon_tomorrow))
-draw.text((x_tomorrow_heading, y_tomorrow_heading), "Imorgon", inky_display.GREEN, font_mini)
-draw.text((x_tomorrow, y_tomorrow), tomorrow, inky_display.GREEN, font_small)
+draw.text((x_tomorrow_heading, y_tomorrow_heading), "Imorgon", inky_display.YELLOW, font_mini)
+draw.text((x_tomorrow, y_tomorrow), tomorrow, inky_display.YELLOW, font_small)
 
 inky_display.set_image(img)
 inky_display.show()
