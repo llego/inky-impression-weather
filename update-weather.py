@@ -126,6 +126,13 @@ def build_report(config) -> WeatherReport:
 
 
 def load_font(size: int) -> ImageFont.ImageFont:
+    font_path = os.environ.get("INKY_WEATHER_FONT")
+    if font_path:
+        try:
+            return ImageFont.truetype(font_path, size)
+        except OSError:
+            print(f"Warning: could not load INKY_WEATHER_FONT={font_path}")
+
     try:
         from font_fredoka_one import FredokaOne
 

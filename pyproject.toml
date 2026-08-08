@@ -1,0 +1,9 @@
+[tool.ruff]
+target-version = "py39"
+
+[tool.ruff.lint]
+ignore = [
+  "DTZ005",
+  "FA100",
+  "I001",
+]
