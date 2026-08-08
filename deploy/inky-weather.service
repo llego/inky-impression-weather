@@ -1,0 +1,7 @@
+[Unit]
+Description=Inky weather display update
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/llego/inky-impression-weather
+ExecStart=/usr/bin/python3 /home/llego/inky-impression-weather/update-weather.py --display

@@ -1,255 +1,263 @@
-from inky.auto import auto
-from PIL import Image, ImageFont, ImageDraw
-import os
-from font_fredoka_one import FredokaOne
+import argparse
 import json
-from requests import get, exceptions
+import os
+from dataclasses import dataclass
 from datetime import datetime
-import parameters
+from typing import Optional
 
-path = os.path.dirname(os.path.realpath(__file__))
-
-inky_display = auto()
-inky_display.set_border(inky_display.BLACK)
-
-url_fmi = parameters.url_fmi
-url_fmi_forecast = parameters.url_fmi_forecast
-
-url_indoor_temp = parameters.url_indoor_temp
-url_indoor_temp_sovrummet = parameters.url_indoor_temp_sovrummet
-url_indoor_humidity = parameters.url_indoor_humidity
-url_indoor_humidity_sovrummet = parameters.url_indoor_humidity_sovrummet
-
-headers = parameters.headers
-
-# API call to home assistant
-try:
-    response = get(url_fmi, headers=headers)
-except exceptions.RequestException as e:
-    raise SystemExit(e)
-
-json_obj = json.loads(response.text)
-print("\nCurrent weather:\n")
-print(json.dumps(json_obj, indent=4))
-
-# API call to home assistant
-try:
-    response = get(url_fmi_forecast, headers=headers)
-except exceptions.RequestException as e:
-    raise SystemExit(e)
-
-json_obj_forecast = json.loads(response.text)
-print("\nForecast:\n")
-print(json.dumps(json_obj_forecast, indent=4))
+from PIL import Image, ImageDraw, ImageFont
+from requests import exceptions, get
 
 
-### Variables for current weather
-datasource = json_obj["attributes"]["friendly_name"]
-today_cond = json_obj["state"]
-temperature = json_obj["attributes"]["temperature"]
-humidity = json_obj["attributes"]["humidity"]
-wind_bearing = json_obj["attributes"]["wind_bearing"]
-wind_speed = round(json_obj["attributes"]["wind_speed"] / 3.6, 1)
+DISPLAY_WIDTH = 600
+DISPLAY_HEIGHT = 448
+BLACK = 0
+WHITE = 1
+GREEN = 2
+BLUE = 3
+RED = 4
+YELLOW = 5
+ORANGE = 6
+CLEAN = 7
+
+PATH = os.path.dirname(os.path.realpath(__file__))
 
 
-### Variables for weather forecast
-today_templow = json_obj_forecast["attributes"]["forecast"][0]["templow"]
-today_temphigh = json_obj_forecast["attributes"]["forecast"][0]["temperature"]
-precipitation_mm = json_obj_forecast["attributes"]["forecast"][0]["precipitation"]
-
-tomorrow_cond = json_obj_forecast["attributes"]["forecast"][1]["condition"]
-
-tomorrow_templow = json_obj_forecast["attributes"]["forecast"][1]["templow"]
-tomorrow_temphigh = json_obj_forecast["attributes"]["forecast"][1]["temperature"]
-
-tomorrow_wind_speed = json_obj_forecast["attributes"]["forecast"][1]["wind_speed"]
-precipitation_mm_tomorrow = json_obj_forecast["attributes"]["forecast"][1]["precipitation"]
-
-tomorrow_humidity = json_obj_forecast["attributes"]["forecast"][1]["humidity"]
-
-#precipitation_probability = json_obj["attributes"]["forecast"][0]["precipitation_probability"]
-#tomorrow_precipitation_probability = json_obj["attributes"]["forecast"][1]["precipitation_probability"]
+@dataclass
+class WeatherReport:
+    datasource: str
+    today_condition: str
+    today_icon: str
+    today_text: str
+    tomorrow_condition: str
+    tomorrow_text: str
+    timestamp: str
+    indoor_temperature: Optional[int]
+    indoor_humidity: Optional[int]
 
 
-
-#### Construct report text
-temp_info = "Temp: " + u"{}°C".format(temperature) + " (" + str(today_templow) + "..." + u"{}°C".format(today_temphigh) + ")"
-temp_info_tomorrow = "Temp: " + str(tomorrow_templow) + "..." + u"{}°C".format(tomorrow_temphigh)
-
-rain_info = "\nNederbörd: " + u"{} mm".format(precipitation_mm)
-rain_info_tomorrow = "\nNederbörd: " + u"{} mm".format(precipitation_mm_tomorrow)
-
-fukt_info = "\nFukt: " + u"{}%".format(humidity)
-fukt_info_tomorrow = "\nFukt: " + u"{}%".format(tomorrow_humidity)
-
-wind_info = "\nVind: " + u"{} m/s".format(wind_speed)
-wind_info_tomorrow = "\nVind: " + u"{} m/s".format(tomorrow_wind_speed)
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Render weather for an Inky Impression display")
+    parser.add_argument("--output", help="Save rendered image to this path")
+    parser.add_argument("--no-display", action="store_true", help="Do not update the Inky display")
+    parser.add_argument("--display", action="store_true", help="Update the Inky display")
+    parser.add_argument("--width", type=int, default=DISPLAY_WIDTH, help="Preview image width")
+    parser.add_argument("--height", type=int, default=DISPLAY_HEIGHT, help="Preview image height")
+    return parser.parse_args()
 
 
-#### Indoor temperature and humidity
-# This is ignored at the moment
-try:
-    response_indoor_temp = get(url_indoor_temp, headers=headers)
-    response_indoor_humidity = get(url_indoor_humidity, headers=headers)
-except exceptions.RequestException as e:
-    raise SystemExit(e)
-
-try:
-    json_obj_indoor_temp = json.loads(response_indoor_temp.text)
-    temp_indoor = round(float(json_obj_indoor_temp["state"]))
-    json_obj_indoor_humidity = json.loads(response_indoor_humidity.text)
-    humidity_indoor = round(float(json_obj_indoor_humidity["state"]))
-except:
-    response_indoor_temp = get(url_indoor_temp_sovrummet, headers=headers)
-    response_indoor_humidity = get(url_indoor_humidity_sovrummet, headers=headers)
-    json_obj_indoor_temp = json.loads(response_indoor_temp.text)
+def fetch_json(url: str, headers: dict[str, str]) -> dict:
     try:
-        temp_indoor = round(float(json_obj_indoor_temp["state"]))
-        json_obj_indoor_humidity = json.loads(response_indoor_humidity.text)
-        humidity_indoor = round(float(json_obj_indoor_humidity["state"]))
-    except:
-        temp_indoor = None
-        humidity_indoor = None
+        response = get(url, headers=headers, timeout=20)
+        response.raise_for_status()
+    except exceptions.RequestException as error:
+        raise SystemExit(error) from error
+
+    try:
+        return response.json()
+    except json.JSONDecodeError as error:
+        raise SystemExit(f"Invalid JSON from {url}: {error}") from error
 
 
-today = temp_info + \
-fukt_info + \
-rain_info + \
-wind_info
-
-tomorrow = temp_info_tomorrow + \
-fukt_info_tomorrow + \
-rain_info_tomorrow + \
-wind_info_tomorrow
-
-timestamp = "Uppdaterad " + datetime.now().strftime("%Y-%m-%d %H:%M") + " från " + datasource
-
-print("today: \n" + today)
-print("\n")
-print("tomorrow: \n" + tomorrow)
-print("\n")
-print("timestamp = " + timestamp)
-
-#exit()
+def fetch_optional_sensor(primary_url: str, fallback_url: str, headers: dict[str, str]) -> Optional[int]:
+    for url in (primary_url, fallback_url):
+        try:
+            sensor = fetch_json(url, headers)
+            return round(float(sensor["state"]))
+        except (KeyError, TypeError, ValueError, SystemExit):
+            continue
+    return None
 
 
+def build_report(config) -> WeatherReport:
+    current = fetch_json(config.url_fmi, config.headers)
+    forecast = fetch_json(config.url_fmi_forecast, config.headers)
+    forecast_items = forecast["attributes"]["forecast"]
+    today_forecast = forecast_items[0]
+    tomorrow_forecast = forecast_items[1]
+
+    datasource = current["attributes"].get("friendly_name", "Home Assistant")
+    today_condition = current["state"]
+    today_icon = current["attributes"].get("current_icon", today_condition)
+    temperature = current["attributes"]["temperature"]
+    humidity = current["attributes"]["humidity"]
+    wind_speed = round(current["attributes"]["wind_speed"] / 3.6, 1)
+
+    today_text = "\n".join(
+        [
+            f"Temp: {temperature}°C ({today_forecast['templow']}...{today_forecast['temperature']}°C)",
+            f"Fukt: {humidity}%",
+            f"Nederbörd: {today_forecast['precipitation']} mm",
+            f"Vind: {wind_speed} m/s",
+        ]
+    )
+    tomorrow_text = "\n".join(
+        [
+            f"Temp: {tomorrow_forecast['templow']}...{tomorrow_forecast['temperature']}°C",
+            f"Fukt: {tomorrow_forecast['humidity']}%",
+            f"Nederbörd: {tomorrow_forecast['precipitation']} mm",
+            f"Vind: {tomorrow_forecast['wind_speed']} m/s",
+        ]
+    )
+    timestamp = f"Uppdaterad {datetime.now().strftime('%Y-%m-%d %H:%M')} från {datasource}"
+
+    indoor_temperature = fetch_optional_sensor(
+        config.url_indoor_temp,
+        config.url_indoor_temp_sovrummet,
+        config.headers,
+    )
+    indoor_humidity = fetch_optional_sensor(
+        config.url_indoor_humidity,
+        config.url_indoor_humidity_sovrummet,
+        config.headers,
+    )
+
+    return WeatherReport(
+        datasource=datasource,
+        today_condition=today_condition,
+        today_icon=today_icon,
+        today_text=today_text,
+        tomorrow_condition=tomorrow_forecast["condition"],
+        tomorrow_text=tomorrow_text,
+        timestamp=timestamp,
+        indoor_temperature=indoor_temperature,
+        indoor_humidity=indoor_humidity,
+    )
 
 
+def load_font(size: int) -> ImageFont.ImageFont:
+    try:
+        from font_fredoka_one import FredokaOne
+
+        return ImageFont.truetype(FredokaOne, size)
+    except (ImportError, OSError):
+        for font_path in (
+            "/run/current-system/sw/share/X11-fonts/DejaVuSans.ttf",
+            "/run/current-system/sw/share/fonts/truetype/DejaVuSans.ttf",
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+        ):
+            if os.path.exists(font_path):
+                return ImageFont.truetype(font_path, size)
+    return ImageFont.load_default()
 
 
-
-### Possible conditions
-"""    
-    "clear-night": ["clear-night"],
-    "cloudy": ["cloudy"],
-    "exceptional": ["cloudy"],
-    "fog": ["foggy"],
-    "hail": ["hail"],
-    "lightning": ["thunderstorm"],
-    "lightning-rainy": ["possibly-thunderstorm-day", "possibly-thunderstorm-night"],
-    "partlycloudy": [
-        "partly-cloudy-day",
-        "partly-cloudy-night",
-    ],
-    "rainy": [
-        "rainy",
-        "possibly-rainy-day",
-        "possibly-rainy-night",
-    ],
-    "snowy": ["snow", "possibly-snow-day", "possibly-snow-night"],
-    "snowy-rainy": ["sleet", "possibly-sleet-day", "possibly-sleet-night"],
-    "sunny": ["clear-day"],
-    "windy": ["windy"], 
-"""
+def text_size(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.ImageFont) -> tuple[int, int]:
+    try:
+        bbox = draw.multiline_textbbox((0, 0), text, font=font)
+        return bbox[2] - bbox[0], bbox[3] - bbox[1]
+    except AttributeError:
+        return font.getsize(text)
 
 
-### Determine icon and convert icon to Inky format
-try:
-	current_icon = json_obj["attributes"]["current_icon"]
-except KeyError:
-	current_icon = json_obj["state"]
-
-icon_path_current = path+"/icons/"+current_icon+".PNG8"
-icon_today = Image.open(icon_path_current).convert("RGBA")
-
-icon_path_tomorrow = path+"/icons/"+tomorrow_cond+".PNG8"
-icon_tomorrow = Image.open(icon_path_tomorrow).convert("RGBA")
+def load_icon(name: str) -> Image.Image:
+    icon_path = os.path.join(PATH, "icons", f"{name}.PNG8")
+    try:
+        return Image.open(icon_path).convert("RGBA")
+    except FileNotFoundError:
+        fallback_path = os.path.join(PATH, "icons", "cloudy.PNG8")
+        return Image.open(fallback_path).convert("RGBA")
 
 
-### Clean display
-for y in range(inky_display.HEIGHT):
-    for x in range(inky_display.WIDTH):
-        inky_display.set_pixel(x, y, inky_display.CLEAN)
-inky_display.show()
+def render_report(report: WeatherReport, width: int, height: int) -> Image.Image:
+    image = Image.new("P", (width, height), BLACK)
+    image.putpalette(
+        [
+            0,
+            0,
+            0,
+            255,
+            255,
+            255,
+            0,
+            255,
+            0,
+            0,
+            0,
+            255,
+            255,
+            0,
+            0,
+            255,
+            255,
+            0,
+            255,
+            128,
+            0,
+            255,
+            255,
+            255,
+        ]
+        + [0, 0, 0] * 248
+    )
+    draw = ImageDraw.Draw(image)
+
+    font_small = load_font(35)
+    font_mini = load_font(20)
+
+    today_icon = load_icon(report.today_icon)
+    tomorrow_icon = load_icon(report.tomorrow_condition)
+
+    draw.line((1, int(height / 2 - 1), width, int(height / 2 - 1)), fill=RED, width=3)
+
+    timestamp_width, timestamp_height = text_size(draw, report.timestamp, font_mini)
+    draw.text((width - timestamp_width, height - timestamp_height), report.timestamp, WHITE, font_mini)
+
+    today_heading_width, today_heading_height = text_size(draw, "Idag", font_mini)
+    del today_heading_width
+    x_icon = 1
+    y_icon = today_heading_height + 1
+    x_today = x_icon + today_icon.size[0]
+    y_today = 20
+
+    image.paste(today_icon, (x_icon, y_icon), today_icon)
+    draw.text((20, 1), "Idag", WHITE, font_mini)
+    draw.multiline_text((x_today, y_today), report.today_text, WHITE, font_small)
+
+    tomorrow_heading_width, tomorrow_heading_height = text_size(draw, "Imorgon", font_mini)
+    del tomorrow_heading_width
+    x_tomorrow_heading = 20
+    y_tomorrow_heading = int(height / 2 + 3)
+    x_icon_tomorrow = 1
+    y_icon_tomorrow = y_tomorrow_heading + tomorrow_heading_height
+    x_tomorrow = x_icon_tomorrow + tomorrow_icon.size[0]
+
+    image.paste(tomorrow_icon, (x_icon_tomorrow, y_icon_tomorrow), tomorrow_icon)
+    draw.text((x_tomorrow_heading, y_tomorrow_heading), "Imorgon", YELLOW, font_mini)
+    draw.multiline_text((x_tomorrow, y_icon_tomorrow), report.tomorrow_text, YELLOW, font_small)
+
+    return image
 
 
-### Prepare Inky Impression screen
-img = Image.new("P", (inky_display.WIDTH, inky_display.HEIGHT))
-draw = ImageDraw.Draw(img)
+def show_on_inky(image: Image.Image) -> None:
+    from inky.auto import auto
 
-for y in range(inky_display.height):
-	for x in range(inky_display.width):
-		img.putpixel((x, y), inky_display.BLACK)
-
-inky_display.set_image(img)
-inky_display.show()
-#input("Press Enter to continue...")
+    inky_display = auto()
+    inky_display.set_border(inky_display.BLACK)
+    inky_display.set_image(image)
+    inky_display.show()
 
 
-### Fonts
-font_big = ImageFont.truetype(FredokaOne, 100)
-font_small = ImageFont.truetype(FredokaOne, 35)
-font_mini = ImageFont.truetype(FredokaOne, 20)
+def main() -> None:
+    args = parse_args()
+    if args.no_display and args.display:
+        raise SystemExit("Use either --display or --no-display, not both")
+    if not args.output and not args.display:
+        raise SystemExit("Nothing to do. Use --output preview.png and/or --display")
+
+    try:
+        import parameters
+    except ImportError as error:
+        raise SystemExit("Create parameters.py from parameters.example.py before running") from error
+
+    report = build_report(parameters)
+    image = render_report(report, args.width, args.height)
+
+    if args.output:
+        image.save(args.output)
+
+    if args.display:
+        show_on_inky(image)
 
 
-## Draw line and write timestamp
-draw.line((1, int(inky_display.HEIGHT/2 - 1), inky_display.WIDTH, int(inky_display.HEIGHT/2 - 1)), fill=inky_display.RED, width=3)
-
-w_timestamp, h_timestamp = font_mini.getsize(timestamp) # timestamp
-x_timestamp = inky_display.WIDTH - w_timestamp
-y_timestamp = inky_display.HEIGHT - h_timestamp
-draw.text((x_timestamp, y_timestamp), timestamp, inky_display.WHITE, font_mini) 
-
-
-### Write icon, today's weather and timestamp to display
-w_today_heading, h_today_heading = font_mini.getsize("Idag") # Today: heading text
-w_icon, h_icon = icon_today.size # icon
-w_today, h_today = font_small.getsize(today)
-
-x_heading = 20
-y_heading = 1
-x_icon = 1
-y_icon = h_today_heading + 1
-
-x_today = x_icon + w_icon
-y_today = 20
-
-img.paste(icon_today, (x_icon, y_icon))
-draw.text((x_heading, y_heading), "Idag", inky_display.WHITE, font_mini)
-draw.text((x_today, y_today), today, inky_display.WHITE, font_small)
-
-
-
-### Write tomorrow to display
-w_tomorrow_heading, h_tomorrow_heading = font_mini.getsize("Imorgon")
-w_icon_tomorrow, h_icon_tomorrow = icon_tomorrow.size # icon
-w_tomorrow, h_tomorrow = font_small.getsize(tomorrow)
-
-x_tomorrow_heading = 20
-y_tomorrow_heading = int(inky_display.HEIGHT / 2 + 3)
-
-x_icon_tomorrow = 1
-y_icon_tomorrow = y_tomorrow_heading + h_tomorrow_heading
-
-x_tomorrow = x_icon_tomorrow + w_icon_tomorrow
-# y_tomorrow = int((inky_display.HEIGHT) - h_tomorrow - 10)
-# y_tomorrow = int(y_icon_tomorrow + h_icon_tomorrow/2 - h_tomorrow/2)
-y_tomorrow = y_icon_tomorrow
-
-img.paste(icon_tomorrow, (x_icon_tomorrow, y_icon_tomorrow))
-draw.text((x_tomorrow_heading, y_tomorrow_heading), "Imorgon", inky_display.YELLOW, font_mini)
-draw.text((x_tomorrow, y_tomorrow), tomorrow, inky_display.YELLOW, font_small)
-
-inky_display.set_image(img)
-inky_display.show()
-
+if __name__ == "__main__":
+    main()

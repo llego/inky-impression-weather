@@ -1,0 +1,10 @@
+[Unit]
+Description=Update Inky weather display regularly
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=15min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

@@ -1,33 +1,52 @@
-# Description
-This python script calls the Home Assistant API, pulls information from a weather entity, and shows the current weather and forecast on an Inky Impression e-paper display. I'm using a Raspberry Pi Zero but the Inky Impression is compatible with all the other regular Raspberry Pi's as well.
+# Inky Impression Weather
 
-The weather entity that I'm using is a [custom component](https://github.com/briis/smartweather) that pulls data from a [Weatherflow Tempest Weather Station](https://weatherflow.com/tempest-weather-system/) installed on my friend's backyard. Your weather entity has possibly different keys and values than the weather entity that I'm using.
+This script reads weather data from Home Assistant and renders a two-panel weather view for an Inky Impression e-paper display.
 
-Please note that the Inky Impression display is really slow to update, around a minute or so. Furthermore, the Python libraries and documentation are mostly made for other Inky devices, making it really tricky to learn the various tricks and tweaks specific to the Inky Impression. Working with the Inky Impression can get quite tedious!
-
-Please note that I have next to zero experience in programming! I don't expect this to be a stable setup in your environment!
+The development workflow is preview-first: render a local PNG on `laptop`, inspect it, then deploy the same code to the Raspberry Pi Zero that is connected to the display.
 
 ![Example](/inky-impression-weather.png)
 
-# Requirements
-1. [Inky Impression e-paper display](https://shop.pimoroni.com/products/inky-impression) 
-2. Raspberry Pi (e.g. Zero)
-3. [Home Assistant](https://www.home-assistant.io/) running on another machine
+## Development
 
-# Instructions
-1. Install Raspberry Pi OS Lite
-2. Connect Raspberry Pi to Inky Impression
-3. [Set up Inky python libraries](http://docs.pimoroni.com/inkyphat/)
+Enter the Nix development shell on `laptop`:
 
-`curl https://get.pimoroni.com/inky | bash`
+```sh
+nix develop
+```
 
-4. Make sure that you have a suitable weather entity in Home Assistant, for example the [smartweather custom component](https://github.com/briis/smartweather). I have not tested the regular weather entity that is pre-configured in Home Assistant.
-5. Set up a Long-Lived Access Token in Home Assistant
-6. Modify the Long-Lived Access Token and IP address in `update-weather.py`
-7. Update crontab to run the python script regularly; every 15 mins, for example
+Create a local `parameters.py` from `parameters.example.py` and fill in the Home Assistant URL, entity URLs, and token. `parameters.py` is ignored by Git and must not be committed.
 
-`crontab -e`
+Render a preview without importing or touching Inky hardware:
 
-Add the following line the to the end:
+```sh
+python update-weather.py --output preview.png --no-display
+```
 
-`*/15 * * * * python3 /home/pi/inky-impression-weather/update-weather.py >> out.txt  2>&1` 
+## Raspberry Pi Runtime
+
+The Pi Zero needs the Pimoroni Inky libraries installed and a Pi-local `parameters.py`:
+
+```sh
+curl https://get.pimoroni.com/inky | bash
+```
+
+Run a manual update on the Pi:
+
+```sh
+python3 update-weather.py --display
+```
+
+## Deployment
+
+Deploy from `laptop` to the Pi Zero:
+
+```sh
+rsync -az --delete \
+  --exclude .git \
+  --exclude __pycache__ \
+  --exclude preview.png \
+  --exclude parameters.py \
+  ./ llego@rpizero.home:/home/llego/inky-impression-weather/
+```
+
+See `deploy/README.md` for the user-level `systemd` service and timer setup.
