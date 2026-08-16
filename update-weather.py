@@ -315,14 +315,15 @@ def render_report(report: WeatherReport, width: int, height: int) -> Image.Image
     draw.text((width - timestamp_width, height - timestamp_height), report.timestamp, BLACK, font_mini)
 
     draw.text((20, 4), "Idag", BLACK, font_heading)
-    draw.text((16, 58), condition_icon(report.today_icon), BLACK, font_today_condition)
+    draw.text((10, 58), condition_icon(report.today_icon), BLACK, font_today_condition)
 
     current = f"{report.current_temperature:.1f}°C"
-    draw.text((150, 32), current, BLACK, font_current)
+    today_x = 210
+    draw.text((today_x, 32), current, BLACK, font_current)
 
     draw_symbol_value(
         draw,
-        (150, 150),
+        (today_x, 150),
         ICON_THERMOMETER,
         f"{report.today_low_temperature:.1f}...{report.today_high_temperature:.1f}°C",
         BLACK,
@@ -331,7 +332,7 @@ def render_report(report: WeatherReport, width: int, height: int) -> Image.Image
     )
     rain_end = draw_symbol_value(
         draw,
-        (150, 194),
+        (today_x, 194),
         ICON_RAIN,
         f"{report.today_precipitation:.1f} mm",
         BLACK,
@@ -349,7 +350,7 @@ def render_report(report: WeatherReport, width: int, height: int) -> Image.Image
     )
     draw_symbol_value(
         draw,
-        (150, 232),
+        (today_x, 232),
         ICON_WIND,
         f"{report.today_wind_speed:.1f} m/s",
         BLACK,
@@ -358,8 +359,8 @@ def render_report(report: WeatherReport, width: int, height: int) -> Image.Image
     )
 
     draw.text((20, split_y + 6), "Imorgon", BLUE, font_heading)
-    draw.text((16, split_y + 56), condition_icon(report.tomorrow_condition), BLUE, font_tomorrow_condition)
-    tomorrow_x = 132
+    draw.text((10, split_y + 56), condition_icon(report.tomorrow_condition), BLUE, font_tomorrow_condition)
+    tomorrow_x = today_x
     tomorrow_y = split_y + 32
     draw_symbol_value(
         draw,
