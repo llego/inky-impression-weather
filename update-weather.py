@@ -261,7 +261,7 @@ def load_symbol_font(size: int) -> ImageFont.ImageFont:
         "/usr/share/fonts/opentype/weathericons-regular.otf",
     ):
         if os.path.exists(font_path):
-            return ImageFont.truetype(font_path, size)
+            return ImageFont.truetype(str(font_path), size)
     return load_font(size)
 
 
