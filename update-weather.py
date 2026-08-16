@@ -23,7 +23,7 @@ CLEAN = 7
 
 ICON_THERMOMETER = "\uf055"
 ICON_RAIN = "\uf084"
-ICON_HUMIDITY = "\uf07a"
+ICON_CLOUD = "\uf041"
 ICON_WIND = "\uf050"
 CONDITION_ICONS = {
     "clear": "\uf00d",
@@ -86,14 +86,18 @@ class WeatherReport:
     today_low_temperature: float
     today_high_temperature: float
     today_humidity: int
+    today_cloud_coverage: float
     today_precipitation: float
+    today_wind_bearing: float
     today_wind_speed: float
     today_text: str
     tomorrow_condition: str
     tomorrow_low_temperature: float
     tomorrow_high_temperature: float
     tomorrow_humidity: int
+    tomorrow_cloud_coverage: float
     tomorrow_precipitation: float
+    tomorrow_wind_bearing: float
     tomorrow_wind_speed: float
     tomorrow_text: str
     timestamp: str
@@ -157,6 +161,11 @@ def format_weather_text(
     )
 
 
+def format_wind_direction(degrees: float) -> str:
+    directions = ["N", "NNO", "NO", "ONO", "O", "OSO", "SO", "SSO", "S", "SSV", "SV", "VSV", "V", "VNV", "NV", "NNV"]
+    return directions[round(degrees / 22.5) % len(directions)]
+
+
 def build_report(config) -> WeatherReport:
     current = fetch_json(config.url_fmi, config.headers)
     forecast = fetch_json(config.url_fmi_forecast, config.headers)
@@ -169,6 +178,8 @@ def build_report(config) -> WeatherReport:
     today_icon = current["attributes"].get("current_icon", today_condition)
     temperature = current["attributes"]["temperature"]
     humidity = current["attributes"]["humidity"]
+    cloud_coverage = current["attributes"]["cloud_coverage"]
+    wind_bearing = current["attributes"]["wind_bearing"]
     wind_speed = round(current["attributes"]["wind_speed"] / 3.6, 1)
 
     today_text = format_weather_text(
@@ -207,14 +218,18 @@ def build_report(config) -> WeatherReport:
         today_low_temperature=today_forecast["templow"],
         today_high_temperature=today_forecast["temperature"],
         today_humidity=humidity,
+        today_cloud_coverage=cloud_coverage,
         today_precipitation=today_forecast["precipitation"],
+        today_wind_bearing=wind_bearing,
         today_wind_speed=wind_speed,
         today_text=today_text,
         tomorrow_condition=tomorrow_forecast["condition"],
         tomorrow_low_temperature=tomorrow_forecast["templow"],
         tomorrow_high_temperature=tomorrow_forecast["temperature"],
         tomorrow_humidity=tomorrow_forecast["humidity"],
+        tomorrow_cloud_coverage=tomorrow_forecast["cloud_coverage"],
         tomorrow_precipitation=tomorrow_forecast["precipitation"],
+        tomorrow_wind_bearing=tomorrow_forecast["wind_bearing"],
         tomorrow_wind_speed=tomorrow_forecast["wind_speed"],
         tomorrow_text=tomorrow_text,
         timestamp=timestamp,
@@ -341,8 +356,8 @@ def render_report(report: WeatherReport, width: int, height: int) -> Image.Image
     draw_symbol_value(
         draw,
         (rain_end + 28, 194),
-        ICON_HUMIDITY,
-        f"{report.today_humidity}%",
+        ICON_CLOUD,
+        f"{round(report.today_cloud_coverage)}%",
         BLACK,
         font_symbol,
         font_today_detail,
@@ -351,7 +366,7 @@ def render_report(report: WeatherReport, width: int, height: int) -> Image.Image
         draw,
         (today_x, 232),
         ICON_WIND,
-        f"{report.today_wind_speed:.1f} m/s",
+        f"{report.today_wind_speed:.1f} m/s {format_wind_direction(report.today_wind_bearing)}",
         BLACK,
         font_symbol,
         font_today_detail,
@@ -382,8 +397,8 @@ def render_report(report: WeatherReport, width: int, height: int) -> Image.Image
     draw_symbol_value(
         draw,
         (rain_end + 28, tomorrow_y + 30),
-        ICON_HUMIDITY,
-        f"{report.tomorrow_humidity}%",
+        ICON_CLOUD,
+        f"{round(report.tomorrow_cloud_coverage)}%",
         BLUE,
         font_symbol,
         font_tomorrow,
@@ -392,7 +407,7 @@ def render_report(report: WeatherReport, width: int, height: int) -> Image.Image
         draw,
         (tomorrow_x, tomorrow_y + 60),
         ICON_WIND,
-        f"{report.tomorrow_wind_speed:.1f} m/s",
+        f"{report.tomorrow_wind_speed:.1f} m/s {format_wind_direction(report.tomorrow_wind_bearing)}",
         BLUE,
         font_symbol,
         font_tomorrow,
