@@ -359,9 +359,9 @@ def render_report(report: WeatherReport, width: int, height: int) -> Image.Image
     )
 
     draw.text((20, split_y + 6), "Imorgon", BLUE, font_heading)
-    draw.text((10, split_y + 56), condition_icon(report.tomorrow_condition), BLUE, font_tomorrow_condition)
     tomorrow_x = today_x
     tomorrow_y = split_y + 32
+    draw.text((10, tomorrow_y), condition_icon(report.tomorrow_condition), BLUE, font_tomorrow_condition)
     draw_symbol_value(
         draw,
         (tomorrow_x, tomorrow_y),
