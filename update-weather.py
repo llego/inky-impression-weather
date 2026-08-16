@@ -25,7 +25,6 @@ ICON_THERMOMETER = "\uf055"
 ICON_RAIN = "\uf084"
 ICON_HUMIDITY = "\uf07a"
 ICON_WIND = "\uf050"
-
 CONDITION_ICONS = {
     "clear": "\uf00d",
     "clear-day": "\uf00d",
@@ -187,7 +186,7 @@ def build_report(config) -> WeatherReport:
         tomorrow_forecast["precipitation"],
         tomorrow_forecast["wind_speed"],
     )
-    timestamp = f"Uppdaterad {datetime.now().strftime('%Y-%m-%d %H:%M')} från {datasource}"
+    timestamp = f"Uppdaterad {datetime.now().strftime('%H:%M')} från {datasource}"
 
     indoor_temperature = fetch_optional_sensor(
         config.url_indoor_temp,
@@ -303,7 +302,7 @@ def render_report(report: WeatherReport, width: int, height: int) -> Image.Image
     font_today_detail = load_font(30)
     font_tomorrow = load_font(27)
     font_heading = load_font(22)
-    font_mini = load_font(18)
+    font_mini = load_font(16)
     font_symbol = load_symbol_font(27)
     font_today_condition = load_symbol_font(118)
     font_tomorrow_condition = load_symbol_font(94)
@@ -325,7 +324,7 @@ def render_report(report: WeatherReport, width: int, height: int) -> Image.Image
         draw,
         (today_x, 150),
         ICON_THERMOMETER,
-        f"{report.today_low_temperature:.1f}...{report.today_high_temperature:.1f}°C",
+        f"{report.today_low_temperature:.1f} / {report.today_high_temperature:.1f}°C",
         BLACK,
         font_symbol,
         font_today_detail,
@@ -366,12 +365,12 @@ def render_report(report: WeatherReport, width: int, height: int) -> Image.Image
         draw,
         (tomorrow_x, tomorrow_y),
         ICON_THERMOMETER,
-        f"{report.tomorrow_low_temperature:.1f}...{report.tomorrow_high_temperature:.1f}°C",
+        f"{report.tomorrow_low_temperature:.1f} / {report.tomorrow_high_temperature:.1f}°C",
         BLUE,
         font_symbol,
         font_tomorrow,
     )
-    draw_symbol_value(
+    rain_end = draw_symbol_value(
         draw,
         (tomorrow_x, tomorrow_y + 30),
         ICON_RAIN,
@@ -380,9 +379,9 @@ def render_report(report: WeatherReport, width: int, height: int) -> Image.Image
         font_symbol,
         font_tomorrow,
     )
-    hum_end = draw_symbol_value(
+    draw_symbol_value(
         draw,
-        (tomorrow_x, tomorrow_y + 60),
+        (rain_end + 28, tomorrow_y + 30),
         ICON_HUMIDITY,
         f"{report.tomorrow_humidity}%",
         BLUE,
@@ -391,7 +390,7 @@ def render_report(report: WeatherReport, width: int, height: int) -> Image.Image
     )
     draw_symbol_value(
         draw,
-        (hum_end + 28, tomorrow_y + 60),
+        (tomorrow_x, tomorrow_y + 60),
         ICON_WIND,
         f"{report.tomorrow_wind_speed:.1f} m/s",
         BLUE,
