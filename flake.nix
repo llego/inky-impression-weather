@@ -19,12 +19,12 @@
           default = pkgs.mkShell {
             packages = [
               python
-              pkgs.liberation_ttf
               pkgs.ruff
             ];
 
             shellHook = ''
-              export INKY_WEATHER_FONT=${pkgs.liberation_ttf}/share/fonts/truetype/LiberationSans-Regular.ttf
+              export INKY_WEATHER_FONT=$PWD/fonts/FredokaOne-Regular.ttf
+              export INKY_WEATHER_SYMBOL_FONT=$PWD/fonts/weathericons-regular.otf
             '';
           };
         });

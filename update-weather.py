@@ -21,6 +21,33 @@ YELLOW = 5
 ORANGE = 6
 CLEAN = 7
 
+ICON_THERMOMETER = "\uf055"
+ICON_RAIN = "\uf084"
+ICON_HUMIDITY = "\uf07a"
+ICON_WIND = "\uf050"
+
+CONDITION_ICONS = {
+    "clear": "\uf00d",
+    "clear-day": "\uf00d",
+    "clear-night": "\uf02e",
+    "cloudy": "\uf013",
+    "fog": "\uf014",
+    "foggy": "\uf014",
+    "hail": "\uf015",
+    "lightning": "\uf016",
+    "lightning-rainy": "\uf01d",
+    "partly-cloudy-day": "\uf002",
+    "partly-cloudy-night": "\uf031",
+    "partlycloudy": "\uf002",
+    "pouring": "\uf019",
+    "rainy": "\uf019",
+    "snowy": "\uf01b",
+    "snowy-rainy": "\uf017",
+    "sunny": "\uf00d",
+    "thunderstorm": "\uf01e",
+    "windy": "\uf021",
+}
+
 DISPLAY_PALETTE = [
     0,
     0,
@@ -56,8 +83,19 @@ class WeatherReport:
     datasource: str
     today_condition: str
     today_icon: str
+    current_temperature: float
+    today_low_temperature: float
+    today_high_temperature: float
+    today_humidity: int
+    today_precipitation: float
+    today_wind_speed: float
     today_text: str
     tomorrow_condition: str
+    tomorrow_low_temperature: float
+    tomorrow_high_temperature: float
+    tomorrow_humidity: int
+    tomorrow_precipitation: float
+    tomorrow_wind_speed: float
     tomorrow_text: str
     timestamp: str
     indoor_temperature: Optional[int]
@@ -166,8 +204,19 @@ def build_report(config) -> WeatherReport:
         datasource=datasource,
         today_condition=today_condition,
         today_icon=today_icon,
+        current_temperature=temperature,
+        today_low_temperature=today_forecast["templow"],
+        today_high_temperature=today_forecast["temperature"],
+        today_humidity=humidity,
+        today_precipitation=today_forecast["precipitation"],
+        today_wind_speed=wind_speed,
         today_text=today_text,
         tomorrow_condition=tomorrow_forecast["condition"],
+        tomorrow_low_temperature=tomorrow_forecast["templow"],
+        tomorrow_high_temperature=tomorrow_forecast["temperature"],
+        tomorrow_humidity=tomorrow_forecast["humidity"],
+        tomorrow_precipitation=tomorrow_forecast["precipitation"],
+        tomorrow_wind_speed=tomorrow_forecast["wind_speed"],
         tomorrow_text=tomorrow_text,
         timestamp=timestamp,
         indoor_temperature=indoor_temperature,
@@ -198,6 +247,24 @@ def load_font(size: int) -> ImageFont.ImageFont:
     return ImageFont.load_default()
 
 
+def load_symbol_font(size: int) -> ImageFont.ImageFont:
+    font_path = os.environ.get("INKY_WEATHER_SYMBOL_FONT")
+    if font_path:
+        try:
+            return ImageFont.truetype(font_path, size)
+        except OSError:
+            print(f"Warning: could not load INKY_WEATHER_SYMBOL_FONT={font_path}")
+
+    for font_path in (
+        BASE_DIR / "fonts" / "weathericons-regular.otf",
+        "/run/current-system/sw/share/fonts/opentype/weathericons-regular.otf",
+        "/usr/share/fonts/opentype/weathericons-regular.otf",
+    ):
+        if os.path.exists(font_path):
+            return ImageFont.truetype(font_path, size)
+    return load_font(size)
+
+
 def text_size(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.ImageFont) -> tuple[int, int]:
     try:
         bbox = draw.multiline_textbbox((0, 0), text, font=font)
@@ -206,44 +273,25 @@ def text_size(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.ImageFont) -
         return font.getsize(text)
 
 
-def load_icon(name: str) -> Image.Image:
-    icon_path = BASE_DIR / "icons" / f"{name}.PNG8"
-    try:
-        return Image.open(icon_path).convert("L")
-    except FileNotFoundError:
-        fallback_path = BASE_DIR / "icons" / "cloudy.PNG8"
-        return Image.open(fallback_path).convert("L")
-
-
-def load_display_icon(name: str, foreground: int) -> Image.Image:
-    icon = load_icon(name)
-    display_icon = icon.point(lambda value: WHITE if value > 245 else foreground)
-    display_icon.putpalette(DISPLAY_PALETTE)
-    return display_icon
-
-
-def draw_section(
-    image: Image.Image,
+def draw_symbol_value(
     draw: ImageDraw.ImageDraw,
-    heading: str,
-    icon_name: str,
-    text: str,
-    heading_position: tuple[int, int],
+    position: tuple[int, int],
+    symbol: str,
+    value: str,
     color: int,
-    heading_font: ImageFont.ImageFont,
-    body_font: ImageFont.ImageFont,
-) -> None:
-    heading_width, heading_height = text_size(draw, heading, heading_font)
-    del heading_width
-    x_icon = 1
-    y_icon = heading_position[1] + heading_height
-    icon = load_display_icon(icon_name, color)
-    x_text = x_icon + icon.size[0]
-    y_text = 20 if heading_position[1] == 1 else y_icon
+    symbol_font: ImageFont.ImageFont,
+    value_font: ImageFont.ImageFont,
+) -> int:
+    symbol_width, _ = text_size(draw, symbol, symbol_font)
+    draw.text(position, symbol, color, symbol_font)
+    value_x = position[0] + symbol_width + 8
+    draw.text((value_x, position[1]), value, color, value_font)
+    value_width, _ = text_size(draw, value, value_font)
+    return value_x + value_width
 
-    image.paste(icon, (x_icon, y_icon))
-    draw.text(heading_position, heading, color, heading_font)
-    draw.multiline_text((x_text, y_text), text, color, body_font)
+
+def condition_icon(condition: str) -> str:
+    return CONDITION_ICONS.get(condition, CONDITION_ICONS["cloudy"])
 
 
 def render_report(report: WeatherReport, width: int, height: int) -> Image.Image:
@@ -251,25 +299,103 @@ def render_report(report: WeatherReport, width: int, height: int) -> Image.Image
     image.putpalette(DISPLAY_PALETTE)
     draw = ImageDraw.Draw(image)
 
-    font_small = load_font(35)
-    font_mini = load_font(20)
+    font_current = load_font(88)
+    font_today_detail = load_font(30)
+    font_tomorrow = load_font(27)
+    font_heading = load_font(22)
+    font_mini = load_font(18)
+    font_symbol = load_symbol_font(27)
+    font_today_condition = load_symbol_font(118)
+    font_tomorrow_condition = load_symbol_font(94)
 
-    draw.line((1, int(height / 2 - 1), width, int(height / 2 - 1)), fill=RED, width=3)
+    split_y = int(height * 0.64)
+    draw.line((1, split_y, width, split_y), fill=RED, width=3)
 
     timestamp_width, timestamp_height = text_size(draw, report.timestamp, font_mini)
     draw.text((width - timestamp_width, height - timestamp_height), report.timestamp, BLACK, font_mini)
 
-    draw_section(image, draw, "Idag", report.today_icon, report.today_text, (20, 1), BLACK, font_mini, font_small)
-    draw_section(
-        image,
+    draw.text((20, 4), "Idag", BLACK, font_heading)
+    draw.text((16, 58), condition_icon(report.today_icon), BLACK, font_today_condition)
+
+    current = f"{report.current_temperature:.1f}°C"
+    draw.text((150, 32), current, BLACK, font_current)
+
+    draw_symbol_value(
         draw,
-        "Imorgon",
-        report.tomorrow_condition,
-        report.tomorrow_text,
-        (20, int(height / 2 + 3)),
+        (150, 150),
+        ICON_THERMOMETER,
+        f"{report.today_low_temperature:.1f}...{report.today_high_temperature:.1f}°C",
+        BLACK,
+        font_symbol,
+        font_today_detail,
+    )
+    rain_end = draw_symbol_value(
+        draw,
+        (150, 194),
+        ICON_RAIN,
+        f"{report.today_precipitation:.1f} mm",
+        BLACK,
+        font_symbol,
+        font_today_detail,
+    )
+    draw_symbol_value(
+        draw,
+        (rain_end + 28, 194),
+        ICON_HUMIDITY,
+        f"{report.today_humidity}%",
+        BLACK,
+        font_symbol,
+        font_today_detail,
+    )
+    draw_symbol_value(
+        draw,
+        (150, 232),
+        ICON_WIND,
+        f"{report.today_wind_speed:.1f} m/s",
+        BLACK,
+        font_symbol,
+        font_today_detail,
+    )
+
+    draw.text((20, split_y + 6), "Imorgon", BLUE, font_heading)
+    draw.text((16, split_y + 56), condition_icon(report.tomorrow_condition), BLUE, font_tomorrow_condition)
+    tomorrow_x = 132
+    tomorrow_y = split_y + 32
+    draw_symbol_value(
+        draw,
+        (tomorrow_x, tomorrow_y),
+        ICON_THERMOMETER,
+        f"{report.tomorrow_low_temperature:.1f}...{report.tomorrow_high_temperature:.1f}°C",
         BLUE,
-        font_mini,
-        font_small,
+        font_symbol,
+        font_tomorrow,
+    )
+    draw_symbol_value(
+        draw,
+        (tomorrow_x, tomorrow_y + 30),
+        ICON_RAIN,
+        f"{report.tomorrow_precipitation:.1f} mm",
+        BLUE,
+        font_symbol,
+        font_tomorrow,
+    )
+    hum_end = draw_symbol_value(
+        draw,
+        (tomorrow_x, tomorrow_y + 60),
+        ICON_HUMIDITY,
+        f"{report.tomorrow_humidity}%",
+        BLUE,
+        font_symbol,
+        font_tomorrow,
+    )
+    draw_symbol_value(
+        draw,
+        (hum_end + 28, tomorrow_y + 60),
+        ICON_WIND,
+        f"{report.tomorrow_wind_speed:.1f} m/s",
+        BLUE,
+        font_symbol,
+        font_tomorrow,
     )
 
     return image
