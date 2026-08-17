@@ -4,7 +4,7 @@ This script reads weather data from Home Assistant and renders a two-panel weath
 
 The development workflow is preview-first: render a local PNG on `laptop`, inspect it, then deploy the same code to the Raspberry Pi Zero that is connected to the display.
 
-![Example](/inky-impression-weather.png)
+![Example](/demo.png)
 
 ## Development
 
